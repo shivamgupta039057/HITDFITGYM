@@ -11,10 +11,40 @@ const {
   changeMemberStatus,
   editMember
 } = require("../controllers/members.controllers.js");
+const upload = require("../middlewares/multer.middleware.js");
 
 const Router = express.Router();
 
-Router.post("/create", createMember);
+// Router.post("/create", createMember);
+
+
+
+Router.post(
+
+  "/create",
+
+  upload.fields([
+
+    {
+      name: "photo",
+      maxCount: 1,
+    },
+
+    {
+      name: "aadhaarFront",
+      maxCount: 1,
+    },
+
+    {
+      name: "aadhaarBack",
+      maxCount: 1,
+    },
+
+  ]),
+
+  createMember
+
+);
 
 Router.get("/get", getMembers);
 

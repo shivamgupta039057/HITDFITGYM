@@ -15,6 +15,7 @@ import PlanPage from '../pages/plans/Plans.tsx';
 import MemberPaymentHistory from '../pages/MemberPagess/PaymentHistory.tsx';
 import AttendancePage from '../pages/AttendancePage/AttendancePage.tsx';
 import FollowUpPage from '../pages/followUp/FollowUpPage.tsx';
+import InvoiceView from '../pages/MemberPagess/invoice/InvoiceView.tsx';
 
 function AllRoutes() {
   const [loading, setLoading] = useState<boolean>(true);
@@ -35,6 +36,8 @@ function AllRoutes() {
     {path : ROUTES_CONST.ATTENDANCE, component: AttendancePage },
     {path : ROUTES_CONST.FOLLOWUPS, component: FollowUpPage },
     {path : `${ROUTES_CONST.MEMBER_PAYMENT_HISTORY}/:memberId`, component: MemberPaymentHistory },
+    {path : `${ROUTES_CONST.INVOICE_VIEW}/:paymentID`, component: InvoiceView },
+
 
 
   ];

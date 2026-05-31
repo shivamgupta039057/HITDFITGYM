@@ -44,6 +44,64 @@ const getPayments = async (req, res) => {
   }
 };
 
+const getPaymentById = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+
+    const payment =
+      await Payment.findById(id)
+
+      .populate({
+
+        path: "memberId",
+
+        populate: {
+
+          path: "planId",
+
+        },
+
+      });
+
+    if (!payment) {
+
+      return res.status(404).json({
+
+        status: 404,
+
+        message: "Payment not found",
+
+      });
+
+    }
+
+    return res.status(200).json({
+
+      status: 200,
+
+      message:
+        "Payment fetched successfully",
+
+      data: payment,
+
+    });
+
+  } catch (error) {
+
+    return res.status(500).json({
+
+      status: 500,
+
+      message: error.message,
+
+    });
+
+  }
+
+};
+
 const deletePayment = async (req, res) => {
   try {
 
@@ -70,4 +128,5 @@ module.exports = {
   createPayment,
   getPayments,
   deletePayment,
+  getPaymentById
 };

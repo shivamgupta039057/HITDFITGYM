@@ -18,6 +18,7 @@ import { ROUTES_CONST } from '../../constant/routeConstant.js';
 import AddMembersModal from './AddMemberRegistration.js';
 import AddRenewModel from './AddRenewModel.js';
 import ChangeStatusModel from './ChangeStatusModel.js';
+import ViewProfileModel from './ViewProfile.js';
 
 // Custom styled components
 const Listbox = styled('ul')`
@@ -89,7 +90,8 @@ const Members: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [showRenewModal, setShowRenewModal] = useState<boolean>(false);
   const [showChangeStatusModal, setShowChangeStatusModal] = useState<boolean>(false);
-
+  const [ShowProfileModal, setShowProfileModal] = useState<boolean>(false);
+  
   const [planList, setPlanList] = useState<Array<{ _id: string, planName: string }>>([]);
   const [filterPlanId, setFilterPlanId] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
@@ -248,6 +250,15 @@ const Members: React.FC = () => {
               <MoreHorizIcon />
             </MenuButtonStyled>
             <Menu slots={{ listbox: Listbox }} className="z-99999">
+            <MenuItemStyled
+                onClick={() => {
+                  setShowProfileModal(true);
+                  setSelectedMemberObj(memberObj);
+                }}
+              >
+                View Profile
+              </MenuItemStyled>
+
               <MenuItemStyled
                 onClick={() => {
                   setShowRenewModal(true);
@@ -459,9 +470,15 @@ const Members: React.FC = () => {
         getFunction={fetchMembers}
         addPatientsId={selectedMemberObj}
       />
-      <ChangeStatusModel
+       <ChangeStatusModel
         openModal={showChangeStatusModal}
         setOpenAddModal={setShowChangeStatusModal}
+        getFunction={fetchMembers}
+        addPatientsId={selectedMemberObj}
+      />
+      <ViewProfileModel
+        openModal={ShowProfileModal}
+        setOpenAddModal={setShowProfileModal}
         getFunction={fetchMembers}
         addPatientsId={selectedMemberObj}
       />

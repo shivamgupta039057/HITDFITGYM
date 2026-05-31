@@ -23,6 +23,7 @@ export const ROUTES_CONST = {
   FOLLOWUPS : "/followups",
   PAYMENTS : "/payments",
   MEMBER_PAYMENT_HISTORY : "/member-payment-history",
+  INVOICE_VIEW:'/invoice-view',
   PLANS : "/plans",
   MEMBERS : "/members",
   EXPIRED_MEMBERS : "/expired-members",

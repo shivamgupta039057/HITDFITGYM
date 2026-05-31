@@ -12,7 +12,7 @@ import { MenuButton as BaseMenuButton, MenuButton } from '@mui/base/MenuButton';
 import { MenuItem as BaseMenuItem, menuItemClasses } from '@mui/base/MenuItem';
 import { Dropdown } from '@mui/base';
 import { MenuItem, TextField, Select, InputLabel, FormControl } from '@mui/material';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Route, useNavigate, useParams } from 'react-router-dom';
 import styled from '@emotion/styled';
 import { ROUTES_CONST } from '../../constant/routeConstant.js';
 import AddMembersModal from './AddMemberRegistration.js';
@@ -200,6 +200,31 @@ const MemberPaymentHistory: React.FC = () => {
       enableSorting: true,
       size: 200,
       Cell: ({ cell }) => cell.getValue() || 'N/A',
+    },
+    {
+      header: 'Actions',
+      accessorKey: '_id',
+      size: 120,
+      enableSorting: false,
+      Cell: ({ cell, row }: any) => {
+        const id = cell.getValue();
+        const memberObj = row.original;
+        return id ? (
+          <Dropdown>
+            <MenuButtonStyled aria-label="More actions">
+              <MoreHorizIcon />
+            </MenuButtonStyled>
+            <Menu slots={{ listbox: Listbox }} className="z-99999">
+              <MenuItemStyled
+                onClick={() => navigate(`${ROUTES_CONST.INVOICE_VIEW}/${memberObj._id}`)}
+              >
+                View Invoice
+              </MenuItemStyled>
+            
+            </Menu>
+          </Dropdown>
+        ) : 'N/A';
+      },
     },
     
   ];

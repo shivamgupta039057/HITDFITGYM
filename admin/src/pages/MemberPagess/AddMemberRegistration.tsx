@@ -12,6 +12,11 @@ import {
   FormControl,
   FormHelperText,
   Grid,
+  Avatar,
+  Box,
+  Typography,
+  Stack,
+  Paper
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import React, { useEffect, useState, useMemo } from 'react';
@@ -46,6 +51,8 @@ interface AddMemberValues {
   paidFees: number | '';
   weight: number | '';
   goal: string;
+  photo: File | null;
+  aadhaarPhoto: File | null;
 }
 
 const initialValues: AddMemberValues = {
@@ -58,6 +65,8 @@ const initialValues: AddMemberValues = {
   paidFees: '',
   weight: '',
   goal: '',
+  photo: null,
+  aadhaarPhoto: null,
 };
 
 const validate = (values: AddMemberValues) => {
@@ -75,6 +84,8 @@ const validate = (values: AddMemberValues) => {
   if (!values.paidFees) errors.paidFees = 'Required';
   if (!values.weight) errors.weight = 'Required';
   if (!values.goal) errors.goal = 'Required';
+  if (!values.photo) errors.photo = 'Photo is required';
+  if (!values.aadhaarPhoto) errors.aadhaarPhoto = 'Aadhaar Card Photo is required';
   return errors;
 };
 
@@ -86,6 +97,10 @@ const AddMembersModal: React.FC<ModalProps> = ({
 }) => {
   const token = localStorage.getItem(localStorageKeys.token);
   const [plans, setPlans] = useState<Plan[]>([]);
+
+  // Photo preview states
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [aadhaarPreview, setAadhaarPreview] = useState<string | null>(null);
 
   // For edit mode, prepare initialValues from addPatientsId if present.
   const getInitialValues = (): AddMemberValues => {
@@ -105,6 +120,8 @@ const AddMembersModal: React.FC<ModalProps> = ({
         paidFees: addPatientsId.paidFees || '',
         weight: addPatientsId.weight || '',
         goal: addPatientsId.goal || '',
+        photo: null, // No File in edit
+        aadhaarPhoto: null, // No File in edit
       };
     }
     return initialValues;
@@ -132,22 +149,34 @@ const AddMembersModal: React.FC<ModalProps> = ({
     getPlans();
   }, []);
 
+  useEffect(() => {
+    // Reset preview (for closing modal or reinitialize)
+    setPhotoPreview(null);
+    setAadhaarPreview(null);
+  }, [openModal, addPatientsId]);
+
   // ----------- Add/Edit Mode: API decision logic
   const handleSubmit = async (values: AddMemberValues, { resetForm }: any) => {
     try {
       if (!token) throw new Error('Token is missing.');
 
-      const payload = {
-        fullName: values.fullName,
-        phone: values.phone,
-        age: Number(values.age),
-        gender: values.gender,
-        address: values.address,
-        planId: values.planId,
-        paidFees: Number(values.paidFees),
-        weight: Number(values.weight),
-        goal: values.goal,
-      };
+      const formData = new FormData();
+      formData.append('fullName', values.fullName);
+      formData.append('phone', values.phone);
+      formData.append('age', values.age.toString());
+      formData.append('gender', values.gender);
+      formData.append('address', values.address);
+      formData.append('planId', values.planId);
+      formData.append('paidFees', values.paidFees.toString());
+      formData.append('weight', values.weight.toString());
+      formData.append('goal', values.goal);
+
+      if (values.photo) {
+        formData.append('photo', values.photo);
+      }
+      if (values.aadhaarPhoto) {
+        formData.append('aadhaarFront', values.aadhaarPhoto);
+      }
 
       let res;
       if (
@@ -157,16 +186,11 @@ const AddMembersModal: React.FC<ModalProps> = ({
         addPatientsId._id
       ) {
         // EDIT mode: call edit API
-        // const editPayload = { ...payload };
-        const editPayload = {
-          memberId :  addPatientsId._id,
-          ...payload
-
-        }
-        res = await Apiservice.postAuth(`${apiEndPoints.member.update}`, editPayload, token);
+        formData.append('memberId', addPatientsId._id);
+        res = await Apiservice.postAPIAuthFormData(`${apiEndPoints.member.update}`, formData, token);
       } else {
         // ADD mode: call add API
-        res = await Apiservice.postAuth(apiEndPoints.member.create, payload, token);
+        res = await Apiservice.postAPIAuthFormData(apiEndPoints.member.create, formData, token);
       }
 
       if (
@@ -192,8 +216,8 @@ const AddMembersModal: React.FC<ModalProps> = ({
   const submitButtonLabel = addPatientsId && addPatientsId._id ? 'Update Member' : 'Add Member';
 
   return (
-    <Dialog open={openModal} fullWidth maxWidth="sm">
-      <DialogTitle>
+    <Dialog open={openModal} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 4 } }}>
+      <DialogTitle sx={{ fontWeight: 600, fontSize: 22 }}>
         {dialogTitle}
         <IconButton
           onClick={() => {
@@ -202,16 +226,16 @@ const AddMembersModal: React.FC<ModalProps> = ({
           aria-label="close"
           sx={{
             position: 'absolute',
-            right: 8,
-            top: 8,
+            right: 12,
+            top: 12,
             color: (theme) => theme.palette.grey[500],
           }}
         >
-          <CloseIcon />
+          <CloseIcon fontSize="medium" />
         </IconButton>
       </DialogTitle>
 
-      <DialogContent>
+      <DialogContent dividers>
         <Formik
           enableReinitialize
           initialValues={formInitialValues}
@@ -219,8 +243,8 @@ const AddMembersModal: React.FC<ModalProps> = ({
           onSubmit={handleSubmit}
         >
           {({ isSubmitting, values, setFieldValue, touched, errors }) => (
-            <Form>
-              <Grid container spacing={2} sx={{ py: 2 }}>
+            <Form encType="multipart/form-data">
+              <Grid container spacing={3} sx={{ py: 1 }}>
                 <Grid item xs={12} sm={6}>
                   <TextField
                     label="Full Name"
@@ -230,7 +254,7 @@ const AddMembersModal: React.FC<ModalProps> = ({
                     error={touched.fullName && Boolean(errors.fullName)}
                     helperText={touched.fullName && errors.fullName ? errors.fullName : ''}
                     fullWidth
-                    margin="dense"
+                    size="medium"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -242,10 +266,10 @@ const AddMembersModal: React.FC<ModalProps> = ({
                     error={touched.phone && Boolean(errors.phone)}
                     helperText={touched.phone && errors.phone ? errors.phone : ''}
                     fullWidth
-                    margin="dense"
+                    size="medium"
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={4}>
                   <TextField
                     label="Age"
                     name="age"
@@ -255,13 +279,12 @@ const AddMembersModal: React.FC<ModalProps> = ({
                     error={touched.age && Boolean(errors.age)}
                     helperText={touched.age && errors.age ? errors.age : ''}
                     fullWidth
-                    margin="dense"
+                    size="medium"
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={4}>
                   <FormControl
                     fullWidth
-                    margin="dense"
                     error={touched.gender && Boolean(errors.gender)}
                   >
                     <InputLabel id="gender-label">Gender</InputLabel>
@@ -284,11 +307,22 @@ const AddMembersModal: React.FC<ModalProps> = ({
                     </FormHelperText>
                   </FormControl>
                 </Grid>
-
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Weight"
+                    name="weight"
+                    type="number"
+                    value={values.weight}
+                    onChange={e => setFieldValue('weight', e.target.value)}
+                    error={touched.weight && Boolean(errors.weight)}
+                    helperText={touched.weight && errors.weight ? errors.weight : ''}
+                    fullWidth
+                    size="medium"
+                  />
+                </Grid>
                 <Grid item xs={12} sm={6}>
                   <FormControl
                     fullWidth
-                    margin="dense"
                     error={touched.planId && Boolean(errors.planId)}
                   >
                     <InputLabel id="plan-label">Plan</InputLabel>
@@ -314,7 +348,6 @@ const AddMembersModal: React.FC<ModalProps> = ({
                     </FormHelperText>
                   </FormControl>
                 </Grid>
-
                 <Grid item xs={12} sm={6}>
                   <TextField
                     label="Paid Fees"
@@ -325,23 +358,10 @@ const AddMembersModal: React.FC<ModalProps> = ({
                     error={touched.paidFees && Boolean(errors.paidFees)}
                     helperText={touched.paidFees && errors.paidFees ? errors.paidFees : ''}
                     fullWidth
-                    margin="dense"
+                    size="medium"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Weight"
-                    name="weight"
-                    type="number"
-                    value={values.weight}
-                    onChange={e => setFieldValue('weight', e.target.value)}
-                    error={touched.weight && Boolean(errors.weight)}
-                    helperText={touched.weight && errors.weight ? errors.weight : ''}
-                    fullWidth
-                    margin="dense"
-                  />
-                </Grid>
-                <Grid item xs={12}>
                   <TextField
                     label="Address"
                     name="address"
@@ -352,10 +372,10 @@ const AddMembersModal: React.FC<ModalProps> = ({
                     error={touched.address && Boolean(errors.address)}
                     helperText={touched.address && errors.address ? errors.address : ''}
                     fullWidth
-                    margin="dense"
+                    size="medium"
                   />
                 </Grid>
-                <Grid item xs={12}>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     label="Goal"
                     name="goal"
@@ -366,14 +386,107 @@ const AddMembersModal: React.FC<ModalProps> = ({
                     error={touched.goal && Boolean(errors.goal)}
                     helperText={touched.goal && errors.goal ? errors.goal : ''}
                     fullWidth
-                    margin="dense"
+                    size="medium"
                   />
                 </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', borderRadius: 2 }}>
+                    <Typography variant="subtitle1" fontWeight={500} sx={{ mb: 1 }}>
+                      Member Photo
+                    </Typography>
+                    <Box sx={{ mb: 1 }}>
+                      <Avatar
+                        src={photoPreview ? photoPreview : (addPatientsId && addPatientsId.photoUrl ? addPatientsId.photoUrl : undefined)}
+                        sx={{ width: 90, height: 90, bgcolor: '#eee' }}
+                        variant="rounded"
+                      />
+                    </Box>
+                    <Button
+                      component="label"
+                      variant="contained"
+                      color={values.photo ? "success" : "primary"}
+                      size="small"
+                      sx={{ textTransform: 'none', mb: 1 }}
+                      fullWidth
+                    >
+                      {values.photo ? "Change Photo" : "Upload Photo"}
+                      <input
+                        hidden
+                        accept="image/*"
+                        type="file"
+                        onChange={e => {
+                          if (e.currentTarget.files && e.currentTarget.files.length > 0) {
+                            const file = e.currentTarget.files[0];
+                            setFieldValue('photo', file);
+                            const reader = new FileReader();
+                            reader.onloadend = () => setPhotoPreview(reader.result as string);
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </Button>
+                    <Typography variant="body2" sx={{ minHeight: 22 }}>
+                      {values.photo ? values.photo.name : addPatientsId && addPatientsId.photoUrl ? "Existing photo loaded" : ''}
+                    </Typography>
+                    {touched.photo && errors.photo && (
+                      <FormHelperText error>{errors.photo}</FormHelperText>
+                    )}
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', borderRadius: 2 }}>
+                    <Typography variant="subtitle1" fontWeight={500} sx={{ mb: 1 }}>
+                      Aadhaar Card Photo
+                    </Typography>
+                    <Box sx={{ mb: 1 }}>
+                      <Avatar
+                        src={aadhaarPreview ? aadhaarPreview : (addPatientsId && addPatientsId.aadhaarPhotoUrl ? addPatientsId.aadhaarPhotoUrl : undefined)}
+                        sx={{ width: 90, height: 90, bgcolor: '#eee' }}
+                        variant="rounded"
+                      />
+                    </Box>
+                    <Button
+                      component="label"
+                      variant="contained"
+                      color={values.aadhaarPhoto ? "success" : "primary"}
+                      size="small"
+                      sx={{ textTransform: 'none', mb: 1 }}
+                      fullWidth
+                    >
+                      {values.aadhaarPhoto ? "Change Aadhaar Photo" : "Upload Aadhaar Card"}
+                      <input
+                        hidden
+                        accept="image/*"
+                        type="file"
+                        onChange={e => {
+                          if (e.currentTarget.files && e.currentTarget.files.length > 0) {
+                            const file = e.currentTarget.files[0];
+                            setFieldValue('aadhaarPhoto', file);
+                            const reader = new FileReader();
+                            reader.onloadend = () => setAadhaarPreview(reader.result as string);
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </Button>
+                    <Typography variant="body2" sx={{ minHeight: 22 }}>
+                      {values.aadhaarPhoto ? values.aadhaarPhoto.name : addPatientsId && addPatientsId.aadhaarPhotoUrl ? "Existing Aadhaar photo loaded" : ''}
+                    </Typography>
+                    {touched.aadhaarPhoto && errors.aadhaarPhoto && (
+                      <FormHelperText error>{errors.aadhaarPhoto}</FormHelperText>
+                    )}
+                  </Paper>
+                </Grid>
+
                 <Grid item xs={12}>
-                  <DialogActions>
+                  <Box mt={2} display="flex" justifyContent="flex-end" gap={2}>
                     <Button
                       onClick={() => setOpenAddModal(false)}
                       disabled={isSubmitting}
+                      variant="outlined"
+                      color="secondary"
+                      sx={{ minWidth: 120, fontWeight: 500 }}
                     >
                       Cancel
                     </Button>
@@ -382,10 +495,11 @@ const AddMembersModal: React.FC<ModalProps> = ({
                       variant="contained"
                       color="primary"
                       disabled={isSubmitting}
+                      sx={{ minWidth: 160, fontWeight: 500 }}
                     >
-                      {submitButtonLabel}
+                      {isSubmitting ? "Submitting..." : submitButtonLabel}
                     </Button>
-                  </DialogActions>
+                  </Box>
                 </Grid>
               </Grid>
             </Form>

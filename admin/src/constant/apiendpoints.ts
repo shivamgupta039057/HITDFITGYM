@@ -15,7 +15,8 @@
     payment_history : "/members/member-payment-history",
     change_status : "/members/change-status",
     delete : '/members/delete',
-    update : '/members/edit'
+    update : '/members/edit',
+    payment_detials : '/payment'
 
 
   },

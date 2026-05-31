@@ -21,6 +21,24 @@ const memberSchema = new mongoose.Schema({
 
   address: String,
 
+  // Member Photo
+  photo: {
+    type: String,
+    default: "",
+  },
+
+  // Aadhaar Card Front
+  aadhaarFront: {
+    type: String,
+    default: "",
+  },
+
+  // Aadhaar Card Back
+  aadhaarBack: {
+    type: String,
+    default: "",
+  },
+
   joinDate: {
     type: Date,
     default: Date.now,
@@ -59,4 +77,7 @@ const memberSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-module.exports = mongoose.model("Member", memberSchema);
+module.exports = mongoose.model(
+  "Member",
+  memberSchema
+);

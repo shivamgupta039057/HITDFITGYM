@@ -1,6 +1,92 @@
 const Member = require("../models/member.models");
 const Payment = require("../models/payment.models");
 const Plan = require("../models/plan.models");
+const uploadOnCloudinary =
+require("../utils/cloudinary");
+
+
+// const createMember = async (req, res) => {
+
+//   try {
+
+//     const {
+
+//       fullName,
+//       phone,
+//       age,
+//       gender,
+//       address,
+//       planId,
+//       paidFees,
+//       weight,
+//       goal,
+
+//     } = req.body;
+
+//     // Check Plan
+//     const plan = await Plan.findById(planId);
+
+//     if (!plan) {
+//       return res.status(404).json({
+//         status: 404,
+//         message: "Plan not found",
+//       });
+//     }
+
+//     // Join Date
+//     const joinDate = new Date();
+
+//     // Expiry Date
+//     const expiryDate = new Date();
+
+//     expiryDate.setMonth(
+//       expiryDate.getMonth() + plan.duration
+//     );
+
+//     const totalFees = plan.price;
+
+//     const pendingFees =
+//       Number(totalFees) - Number(paidFees);
+
+//     // Create Member
+//     const member = await Member.create({
+
+//       fullName,
+//       phone,
+//       age,
+//       gender,
+//       address,
+
+//       planId,
+
+//       joinDate,
+//       expiryDate,
+
+//       totalFees,
+//       paidFees,
+//       pendingFees,
+
+//       weight,
+//       goal,
+
+//     });
+
+//     return res.status(201).json({
+//       status: 201,
+//       message: "Member created successfully",
+//       data: member,
+//     });
+
+//   } catch (error) {
+
+//     return res.status(500).json({
+//       status: 500,
+//       message: error.message,
+//     });
+
+//   }
+
+// };
 
 const createMember = async (req, res) => {
 
@@ -13,40 +99,102 @@ const createMember = async (req, res) => {
       age,
       gender,
       address,
+
+      aadhaarNumber,
+
       planId,
-      paidFees,
+      paidFees = 0,
+
       weight,
       goal,
 
     } = req.body;
 
-    // Check Plan
+    // Plan Check
     const plan = await Plan.findById(planId);
 
     if (!plan) {
+
       return res.status(404).json({
+
         status: 404,
+
         message: "Plan not found",
+
       });
+
     }
 
-    // Join Date
+    // Upload Images To Cloudinary
+
+    let photo = "";
+
+    let aadhaarFront = "";
+
+    let aadhaarBack = "";
+
+    if (req.files?.photo?.[0]) {
+
+      const uploadPhoto =
+      await uploadOnCloudinary(
+        req.files.photo[0].path
+      );
+
+      photo =
+      uploadPhoto?.secure_url || "";
+
+    }
+
+    if (req.files?.aadhaarFront?.[0]) {
+
+      const uploadFront =
+      await uploadOnCloudinary(
+        req.files.aadhaarFront[0].path
+      );
+
+      aadhaarFront =
+      uploadFront?.secure_url || "";
+
+    }
+
+    if (req.files?.aadhaarBack?.[0]) {
+
+      const uploadBack =
+      await uploadOnCloudinary(
+        req.files.aadhaarBack[0].path
+      );
+
+      aadhaarBack =
+      uploadBack?.secure_url || "";
+
+    }
+
+    // Dates
+
     const joinDate = new Date();
 
-    // Expiry Date
     const expiryDate = new Date();
 
     expiryDate.setMonth(
-      expiryDate.getMonth() + plan.duration
+      expiryDate.getMonth() +
+      plan.duration
     );
 
-    const totalFees = plan.price;
+    // Fees
+
+    const totalFees =
+      Number(plan.price);
+
+    const paidAmount =
+      Number(paidFees);
 
     const pendingFees =
-      Number(totalFees) - Number(paidFees);
+      totalFees - paidAmount;
 
     // Create Member
-    const member = await Member.create({
+
+    const member =
+    await Member.create({
 
       fullName,
       phone,
@@ -54,38 +202,85 @@ const createMember = async (req, res) => {
       gender,
       address,
 
+      photo,
+
+      aadhaarNumber,
+
+      aadhaarFront,
+
+      aadhaarBack,
+
       planId,
 
       joinDate,
+
       expiryDate,
 
-      totalFees,
-      paidFees,
+      paidFees:
+      paidAmount,
+
       pendingFees,
 
       weight,
+
       goal,
+
+      status: "active",
 
     });
 
+    // Payment Entry
+
+    if (paidAmount > 0) {
+
+      await Payment.create({
+
+        memberId:
+        member._id,
+
+        invoiceNumber:
+        `INV-${Date.now()}`,
+
+        amount:
+        paidAmount,
+
+        paymentMethod:
+        "cash",
+
+        note:
+        "New Membership",
+
+      });
+
+    }
+
     return res.status(201).json({
+
       status: 201,
-      message: "Member created successfully",
+
+      message:
+      "Member created successfully",
+
       data: member,
+
     });
 
   } catch (error) {
 
+    console.log(error);
+
     return res.status(500).json({
+
       status: 500,
-      message: error.message,
+
+      message:
+      error.message,
+
     });
 
   }
 
 };
-
-
 
 
 const getMembers = async (req, res) => {
@@ -514,6 +709,91 @@ async (req, res) => {
 };
 
 
+// const editMember = async (req, res) => {
+
+//   try {
+
+//     const {
+
+//       memberId,
+
+//       fullName,
+//       phone,
+//       age,
+//       gender,
+//       address,
+//       planId,
+//       weight,
+//       goal,
+
+//     } = req.body;
+
+//     // Check Member
+//     const member =
+//     await Member.findById(memberId);
+
+//     if (!member) {
+
+//       return res.status(404).json({
+
+//         status: 404,
+
+//         message: "Member not found",
+
+//       });
+
+//     }
+
+//     // Update Member
+//     const updatedMember =
+//     await Member.findByIdAndUpdate(
+
+//       memberId,
+
+//       {
+
+//         fullName,
+//         phone,
+//         age,
+//         gender,
+//         address,
+//         planId,
+//         weight,
+//         goal,
+
+//       },
+
+//       {
+//         new: true,
+//       }
+
+//     ).populate("planId");
+
+//     return res.status(200).json({
+
+//       status: 200,
+
+//       message:
+//         "Member updated successfully",
+
+//       data: updatedMember,
+
+//     });
+
+//   } catch (error) {
+
+//     return res.status(500).json({
+
+//       status: 500,
+
+//       message: error.message,
+
+//     });
+
+//   }
+
+// };
+
 const editMember = async (req, res) => {
 
   try {
@@ -527,13 +807,15 @@ const editMember = async (req, res) => {
       age,
       gender,
       address,
+
+      aadhaarNumber,
+
       planId,
       weight,
       goal,
 
     } = req.body;
 
-    // Check Member
     const member =
     await Member.findById(memberId);
 
@@ -549,7 +831,55 @@ const editMember = async (req, res) => {
 
     }
 
-    // Update Member
+    let photo = member.photo;
+
+    let aadhaarFront =
+    member.aadhaarFront;
+
+    let aadhaarBack =
+    member.aadhaarBack;
+
+    // Photo Upload
+    if (req.files?.photo?.[0]) {
+
+      const uploadPhoto =
+      await uploadOnCloudinary(
+        req.files.photo[0].path
+      );
+
+      photo =
+      uploadPhoto?.secure_url || photo;
+
+    }
+
+    // Aadhaar Front Upload
+    if (req.files?.aadhaarFront?.[0]) {
+
+      const uploadFront =
+      await uploadOnCloudinary(
+        req.files.aadhaarFront[0].path
+      );
+
+      aadhaarFront =
+      uploadFront?.secure_url ||
+      aadhaarFront;
+
+    }
+
+    // Aadhaar Back Upload
+    if (req.files?.aadhaarBack?.[0]) {
+
+      const uploadBack =
+      await uploadOnCloudinary(
+        req.files.aadhaarBack[0].path
+      );
+
+      aadhaarBack =
+      uploadBack?.secure_url ||
+      aadhaarBack;
+
+    }
+
     const updatedMember =
     await Member.findByIdAndUpdate(
 
@@ -562,8 +892,19 @@ const editMember = async (req, res) => {
         age,
         gender,
         address,
+
+        aadhaarNumber,
+
+        photo,
+
+        aadhaarFront,
+
+        aadhaarBack,
+
         planId,
+
         weight,
+
         goal,
 
       },
@@ -579,7 +920,7 @@ const editMember = async (req, res) => {
       status: 200,
 
       message:
-        "Member updated successfully",
+      "Member updated successfully",
 
       data: updatedMember,
 
@@ -587,11 +928,14 @@ const editMember = async (req, res) => {
 
   } catch (error) {
 
+    console.log(error);
+
     return res.status(500).json({
 
       status: 500,
 
-      message: error.message,
+      message:
+      error.message,
 
     });
 
